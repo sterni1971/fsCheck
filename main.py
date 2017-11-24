@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+import json
 from pwd import getpwuid
 
 def getFileMetaData(fp):
@@ -18,14 +19,20 @@ def getFileMetaData(fp):
 
     return(resHash)
 
-def warnFile(fHash):
-    with open(fHash['owner']+'.warn','a') as f:
-        f.write(fHash['name']+'\n')
 
+def warnFile(fHash):
+    with open('data.txt', 'w') as outfile:
+        json.dump(fHash, outfile)
+
+
+def storeResult(metaHash):
+    resHash['file'][metaHash['name']]={'owner':metaHash['owner'],'age':metaHash['age']}
+    return None
 
 if __name__ == '__main__':
 
     start_path=sys.argv[1]
+    resHash={'file':{},'date':time.time()}
 
     for dirpath, dirnames, filenames in os.walk(start_path):
         for f in filenames:
@@ -34,5 +41,9 @@ if __name__ == '__main__':
                 print(fp)
                 metaHash=getFileMetaData(fp)
                 if metaHash['age'] > 90:
-                    warnFile(metaHash)
+                    storeResult(metaHash)
+
                 print(metaHash)
+
+    print(resHash)
+    warnFile(resHash)

@@ -1,0 +1,12 @@
+fileDestroyer:
+1. Read warn file
+2. check if warn file older than a month
+3. check actual age of file and remove or ignore
+4. remove warn filen
+
+scanFS:
+1. check for old warn file
+2. scan fs
+3. write warn file
+4. write report file per user/group
+5. send warn mail to owner/group
