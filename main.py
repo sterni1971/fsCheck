@@ -19,10 +19,19 @@ def getFileMetaData(fp):
 
     return(resHash)
 
+class warnFile:
+    def __init__(self):
+        try:
+            with open('data.txt', 'r') as json_data:
+                self.warnStore = json.loads(json_data)
+                json_data.close()
 
-def warnFile(fHash):
-    with open('data.txt', 'w') as outfile:
-        json.dump(fHash, outfile)
+        except:
+            self.warnStore=None
+
+    def write(self.fHash):
+        with open('data.txt', 'w') as outfile:
+            json.dump(self.fHash, outfile)
 
 
 def storeResult(metaHash):
@@ -32,6 +41,9 @@ def storeResult(metaHash):
 if __name__ == '__main__':
 
     start_path=sys.argv[1]
+
+    myWarnFile=warnFile()
+
     resHash={'file':{},'date':time.time()}
 
     for dirpath, dirnames, filenames in os.walk(start_path):
