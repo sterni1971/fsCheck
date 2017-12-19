@@ -13,6 +13,35 @@ import ldap
 import smtplib
 from email.message import EmailMessage
 
+
+
+class whiteList:
+    def __init__(self,wl_name="whitelist"):
+
+        try:
+            with open(wl_name, 'r') as self.wl_file:
+                self.whitelist = self.wl_file.readlines()
+                self.wl_file.close()
+
+
+        except:
+            self.whitelist=[]
+        print("Whitelist: {}".format(self.whitelist))
+
+    def isWhiteListed(self,file):
+        self.result=False
+        self.file=file
+
+        for self.wl_entry in self.whitelist:
+            print("check {} for {}".format(self.file,self.wl_entry))
+            if self.file.startswith(self.wl_entry):
+                print("Whitelisted {} by {}".format(self.file,self.wl_entry))
+                self.result=True
+                break
+
+        return(self.result)
+
+
 class warnFile:
     def __init__(self,quarantine,max_age):
 
@@ -34,7 +63,6 @@ class warnFile:
             self.warnStore=None
 
 
-
     def write(self,fHash):
         self.warnStore=fHash
 
@@ -46,7 +74,7 @@ class warnFile:
         print(self.warnStore)
 
 
-    def kill(self):
+    def kill(self,wh_list):
         self.logFileName=datetime.now().strftime('killed.%d%m%Y.log')
         self.rmFiles=[]
 
@@ -55,7 +83,12 @@ class warnFile:
 
         else:
             for self.f in self.warnStore['file'].keys():
+                #file is already deleted
                 if not os.path.isfile(self.f):
+                    continue
+
+                #file is whitelisted
+                if wh_list.isWhiteListed:
                     continue
 
                 self.age=int(time.time()-os.path.getmtime(self.f))//86400
@@ -73,7 +106,7 @@ class warnFile:
 
 
 class fileSystem:
-    def __init__(self,root,max_age):
+    def __init__(self,root,max_age,wh_list):
         self.fs={'file':{},'date':time.time()}
         self.start_path=root
         self.max_age=max_age
@@ -82,7 +115,8 @@ class fileSystem:
         for self.dirpath, self.dirnames, self.filenames in os.walk(self.start_path):
             for self.f in self.filenames:
                 self.fp = os.path.join(self.dirpath, self.f)
-                if os.path.isfile(self.fp):
+
+                if os.path.isfile(self.fp) and not wh_list.isWhiteListed(self.fp):
                     self._storeFile(self.fp)
 
 
@@ -98,7 +132,7 @@ class fileSystem:
 
             self.fileOwner[self.owner].append(self.file)
             self.fs['file'][self.file]={'owner':self.owner,'age':self.age}
-
+            print("Save {} in warnfile".format(self.file))
 
     def dump(self):
         print(self.fs)
@@ -189,9 +223,10 @@ if __name__ == '__main__':
     else:
         max_age=args.max_age
 
+    myWhiteList=whiteList()
     myWarnFile=warnFile(quarantine,max_age)
     if args.scanFS:
-        myfs=fileSystem(args.root_path,max_age)
+        myfs=fileSystem(args.root_path,max_age,myWhiteList)
         if myWarnFile.warnStore and not args.force:
             print("WARN: Old warn file found. Give --force to overwrite")
         else:
@@ -199,7 +234,7 @@ if __name__ == '__main__':
             myfs.reportOwner()
 
     elif args.cleanFS:
-        rmFiles=myWarnFile.kill()
+        rmFiles=myWarnFile.kill(myWhiteList)
         print("Removed {} files from {}".format(len(rmFiles),args.root_path))
     else:
         print("WARN: nothing to do. give --scanFS or --cleanFS")
